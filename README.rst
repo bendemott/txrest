@@ -133,6 +133,8 @@ this functionality is useful.
 
 **Return 400 Bad Request**::
 
+
+    from twisted.web.http import BAD_REQUEST
     from txrest.json import JsonResource, JsonErrorPage
 
     class RestDeferred(JsonResource):

@@ -1,5 +1,5 @@
 """
-TxRest Json Module.  Json Rest API interfaces are defined in this module.
+``txrest.json`` module.  Json Rest API interfaces are defined in this module.
 """
 
 from __future__ import absolute_import
