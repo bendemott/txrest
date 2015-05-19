@@ -9,7 +9,7 @@ import logging
 
 from twisted.python import log
 from twisted.web import resource
-
+from twisted.web.http import BAD_REQUEST
 from txrest import RestResource, DEFAULT_ENCODING
 
 
