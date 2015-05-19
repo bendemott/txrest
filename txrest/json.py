@@ -184,14 +184,15 @@ class JsonResource(RestResource):
     HANDLE_TYPES = (tuple, list, dict)
     ERROR_CLASS = JsonErrorPage
     
-    def _format_response(self, response, encoding):
+    def _format_response(self, request, response, encoding):
         """
         When a type in HANDLE_TYPES is returned, the super-class (RestResource)
         will call this method.
         
         We are responsible for formatting the message to a string/bytes and returning it.
-        The returned value will be output to the http-client.
+        The returned value wi0ll be output to the http-client.
         
+        :param request: ``twisted.web.server.Request`` instance
         :param response: an object returned from a rest_* method.
                          this should be a json-encodable object: (dict, list, tuple)
         :param encoding: a string that describes the desired encoding to pass into
@@ -207,7 +208,7 @@ class JsonResource(RestResource):
         return rstr
         
 
-    def _format_post(self, body, encoding):
+    def _format_post(self, request, body, encoding):
         """
         Format the contents of a raw POST body.
         
@@ -216,6 +217,7 @@ class JsonResource(RestResource):
         
         This is an internal function and should not be used directly.
         
+        :param request: ``twisted.web.server.Request`` instance
         :param body: (bytes) a byte string that contains the post contents.
         :param encoding: a string that describes the desired encoding to pass into
                          ``json.loads(encoding='<encoding>')``

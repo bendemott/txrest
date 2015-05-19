@@ -68,11 +68,11 @@ class RestResource(resource.Resource):
     
     Next you must define these functions:
     
-    ``def _format_post(self, body, encoding):`` - receives a string (body) and a desired internal
+    ``def _format_post(self, request, body, encoding):`` - receives a string (body) and a desired internal
     encoding (encoding) and should return a data-object that is expected by the 
     second argument in ``rest_POST(request, post_data)`` definitions.
     
-    ``def _format_response(self, response, encoding):`` - receives a data-type defind in the
+    ``def _format_response(self, request, response, encoding):`` - receives a data-type defind in the
     class attribute ``HANDLE_TYPES`` and serializes to a byte string that can be written to
     the client.  Encoding is the requested encoding of the resulting string.
     
@@ -175,7 +175,7 @@ class RestResource(resource.Resource):
                 return self.ERROR_CLASS(BAD_REQUEST, 'Malformed HTTP BODY', err, log=False).render(request)
             
             try:
-                body_data = self._format_post(body, self.encoding)
+                body_data = self._format_post(request, body, self.encoding)
             except Exception as e:
                 err = 'Failed parsing HTTP BODY\n' + traceback.format_exc()
                 log.err(err)
@@ -223,7 +223,7 @@ class RestResource(resource.Resource):
             try:
                 # convert the response from a dictionary to a json string (encoded as utf-8)
                 # note that this will handle unicode strings within the dict properly.
-                rstr = self._format_response(response, self.encoding)
+                rstr = self._format_response(request, response, self.encoding)
             except Exception as e:
                 # handle the exception.
                 debug = 'Resource: (%s) [%s] Output serialization failed\n%s' % (
