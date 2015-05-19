@@ -13,6 +13,7 @@ from textwrap import dedent
 import inspect
 
 from twisted.web import server, resource, static
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, maybeDeferred, CancelledError, _DefGen_Return
 from twisted.web.http import (INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE, BAD_REQUEST)
 from twisted.web.error import UnsupportedMethod
