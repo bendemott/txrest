@@ -14,7 +14,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
 
 **Quickstart (Simple)**::
 
-        from txrest.json import 
+        from txrest.json import JsonResource
         class MyJsonResource(JsonResource):
             isLeaf = True
 
@@ -28,7 +28,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
 
 **Quickstart (GET)**::
 
-        from txrest.json import 
+        from txrest.json import JsonResource
         class MyJsonResource(JsonResource):
             isLeaf = True
  
@@ -43,7 +43,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
  
 **Quickstart (POST)**::
             
-        from txrest.json import 
+        from txrest.json import JsonResource
         class MyJsonResource(JsonResource):
             isLeaf = True
  
