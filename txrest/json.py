@@ -223,7 +223,7 @@ class JsonResource(RestResource):
         # a very quick test to deny malformed bodies.
         char = body.lstrip()[0]
         if char not in ('{', '['):
-            return ErrorPage(
+            return JsonErrorPage(
                 BAD_REQUEST, 'Malformed HTTP BODY', 'Invalid JSON first character != { or ['
             ).render(request)
 
@@ -231,7 +231,7 @@ class JsonResource(RestResource):
             # this will return strings as Unicode()
             body_data = json.loads(body, encoding=encoding)
         except Exception as e:
-            return ErrorPage(
+            return JsonErrorPage(
                 BAD_REQUEST, 'Malformed HTTP BODY', 'Json Conversion Failed ' + str(e)).render(request)
                 
         # TODO add a flag for log_post ?
