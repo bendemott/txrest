@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(
-    name='foobar',
+    name='txrest',
     url='https://github.com/bendemott/txrest.git',
     #test_suite="nose.collector", # TODO !!!
     version='0.5.1',
