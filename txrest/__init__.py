@@ -79,6 +79,11 @@ class RestResource(resource.Resource):
     
     This class popualtes the request variable ``method_called`` to the name of 
     the method that was actually called to handle the request. 
+    
+    We populate the request variable ``recursion`` to an integer that keeps track of
+    resource rendering recursion.
+    
+    We populate the request variable ``started`` to an epoch at the request start time.
     """
     
     # -- SUBCLASSES MUST IMPLEMENT THESE CLASS ATTRIBUTES ---------------------
@@ -128,6 +133,7 @@ class RestResource(resource.Resource):
         """
         # set json content type for response
         request.started = time.time()
+        request.recursion = 0
         request.setHeader(b'accept', self.ACCEPT) # THIS GETS SET FROM SUPER CLASS
         request.setHeader(b'content-type', self.CONTENT_TYPE)
         fq_name = self.__module__ + '.' + self.__class__.__name__
