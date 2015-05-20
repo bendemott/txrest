@@ -94,7 +94,7 @@ class FormEncodedPost(ResourceMixin):
         if form_encoded:
             return request.args
         else:
-            return super(FormEncodedPost, self)._format_post(request, response, encoding)
+            return super(self.__class__, self)._format_post(request, body, encoding)
 
 # -- RESPONSE MIXINS ----------------------------------------------------------    
 

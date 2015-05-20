@@ -227,15 +227,9 @@ class JsonResource(RestResource):
         # TODO support flag for log_post ?
         char = body.lstrip()[0]
         if char not in ('{', '['):
-            return JsonErrorPage(
-                BAD_REQUEST, 'Malformed HTTP BODY', 'Invalid JSON first character != { or ['
-            ).render(request)
+            raise ValueError('Invalid JSON first character != { or [... \nGot: %s ...' % body[:60])
 
-        try:
-            # this will return strings as Unicode()
-            body_data = json.loads(body, encoding=encoding)
-        except Exception as e:
-            return JsonErrorPage(
-                BAD_REQUEST, 'Malformed HTTP BODY', 'Json Conversion Failed ' + str(e)).render(request)
-        
+        # this will return strings as Unicode()
+        body_data = json.loads(body, encoding=encoding)
+
         return body_data

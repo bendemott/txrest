@@ -167,16 +167,10 @@ class XmlResource(RestResource):
         # a very quick test to deny malformed bodies.
         start = body.lstrip()[:5]
         if not start.startswith('<?xml'):
-            return XmlErrorPage(
-                BAD_REQUEST, 'Malformed HTTP BODY', 'Invalid XML post body does not start with != <?xml'
-            ).render(request)
+            raise ValueError('Invalid XML post body does not start with != <?xml... \nGot: %s ...' % body[:60])
 
-        try:
-            # this will return strings as Unicode()
-            body_data = etree.fromstring(body)
-        except Exception as e:
-            return XmlErrorPage(
-                BAD_REQUEST, 'Malformed HTTP BODY', 'XML Parsing Failed ' + str(e)).render(request)
+        # parse the post body into an ElementTree object.
+        body_data = etree.fromstring(body)
                 
                 
     def _format_response(self, request, response, encoding):
