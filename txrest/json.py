@@ -183,7 +183,7 @@ class JsonResource(RestResource):
     ACCEPT = ACCEPT_HEADER
     CONTENT_TYPE = CONTENT_TYPE_HEADER
     HANDLE_TYPES = (dict, list, tuple)
-    ERROR_CLASS = XmlErrorPage
+    ERROR_CLASS = JsonErrorPage
     
     def _format_response(self, request, response, encoding):
         """
