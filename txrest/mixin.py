@@ -77,7 +77,8 @@ class FormEncodedPost(ResourceMixin):
     form encoded posts, instead of the default behavior of
     ``JsonResource`` or ``XmlResource``
     """
-    FORM_ENCODED = ('application/x-www-form-urlencoded', 'multipart/form-data')
+    WWW_FORM = 'application/x-www-form-urlencoded'
+    FORM_DATA = 'multipart/form-data'
     methods = ['_format_post'] # override _format_post
     
     def _format_post(self, request, body, encoding):
@@ -89,8 +90,10 @@ class FormEncodedPost(ResourceMixin):
         :param encoding: a string that describes the desired encoding to pass into
                          ``json.loads(encoding='<encoding>')``
         """
-        form_encoded = (request.getHeader('Content-Type') in FormEncodedPost.FORM_ENCODED)
+        content_type = request.getHeader('Content-Type')
         
+        form_encoded = (True if (content_type == FormEncodedPost.WWW_FORM or
+                        FormEncodedPost.FORM_DATA in content_type) else False)
         if form_encoded:
             return request.args
         else:
