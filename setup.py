@@ -17,7 +17,7 @@ setup(
     name='txrest',
     url='https://github.com/bendemott/txrest.git',
     #test_suite="nose.collector", # TODO !!!
-    version='0.5.1',
+    version='0.6.0',
     packages=['txrest'],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
