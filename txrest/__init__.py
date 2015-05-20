@@ -36,7 +36,7 @@ class ResourceRecursionLimit(Exception):
     pass
     
 
-class RestResource(resource.Resource):
+class RestResource(resource.Resource, object):
     """
     RestResource is a Twisted Resource() object that can be used with the
     twisted eco-system.  RestResource is meant to be an abstract class
@@ -136,7 +136,7 @@ class RestResource(resource.Resource):
         request.started = time.time()
         request.recursion = 0
         request.setHeader(b'accept', self.ACCEPT) # THIS GETS SET FROM SUPER CLASS
-        request.setHeader(b'content-type', self.CONTENT_TYPE)
+        request.setHeader(b'content-type', self.CONTENT_TYPE % self.encoding)
         fq_name = self.__module__ + '.' + self.__class__.__name__
         meth_name = REST_METHOD_PREFIX + str(request.method)
         method = getattr(self, meth_name, None)
@@ -290,10 +290,11 @@ class RestResource(resource.Resource):
                 Received a Deferred Generator Response from Resource (%s)
                 in the method:  [%s] ....................................
                 This indicates you may be missing a yield statement and
-                the decorator `@defer.inlineCallbacks`. 
+                the decorator `@defer.inlineCallbacks`.
+                File: %s
                 
                 If you do not have a yield statement, you should use a regular
-                `return` statement and not `defer.returnValue()`
+                `return` statement and remove `defer.returnValue()`
             ''' % (fq_name, request.method_called, inspect.getfile(self.__class__))).strip()
             
             log.err(err + '-'*20 + '\nException: ' + str(tb))

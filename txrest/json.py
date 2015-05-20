@@ -10,6 +10,7 @@ import logging
 from twisted.python import log
 from twisted.web import resource
 from twisted.web.http import BAD_REQUEST
+
 from txrest import RestResource, DEFAULT_ENCODING
 
 
@@ -181,8 +182,8 @@ class JsonResource(RestResource):
     """
     ACCEPT = ACCEPT_HEADER
     CONTENT_TYPE = CONTENT_TYPE_HEADER
-    HANDLE_TYPES = (tuple, list, dict)
-    ERROR_CLASS = JsonErrorPage
+    HANDLE_TYPES = (etree)
+    ERROR_CLASS = XmlErrorPage
     
     def _format_response(self, request, response, encoding):
         """
@@ -223,6 +224,7 @@ class JsonResource(RestResource):
                          ``json.loads(encoding='<encoding>')``
         """
         # a very quick test to deny malformed bodies.
+        # TODO support flag for log_post ?
         char = body.lstrip()[0]
         if char not in ('{', '['):
             return JsonErrorPage(
@@ -235,20 +237,5 @@ class JsonResource(RestResource):
         except Exception as e:
             return JsonErrorPage(
                 BAD_REQUEST, 'Malformed HTTP BODY', 'Json Conversion Failed ' + str(e)).render(request)
-                
-        # TODO add a flag for log_post ?
-        #if self.log_post:
-        #    pass
-        # --- XXX DEBUGGING ----
-        #debugjson = json.dumps(
-        #    response, 
-        #    check_circular=False, 
-        #    ensure_ascii=False, 
-        #    encoding='utf-8',
-        #    sort_keys=True,
-        #    indent=4)
-        #log.msg('RESPONSE: %s' % debugjson)
         
         return body_data
-          
-        

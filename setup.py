@@ -1,4 +1,18 @@
-from distutils.core import setup
+try:
+    # setuptools first, because it provides "developer"
+    # functionality
+    from setuptools import setup
+except ImportError:
+    sys.stdout.write(
+        os.linesep
+        + 'NOTE: for --develop flag support execute '
+        + '`pip install setuptools` and run again'
+        + os.linesep)
+    try:
+        from distutils import setup
+    except ImportError:
+        from distutils.core import setup
+    
 setup(
     name='txrest',
     url='https://github.com/bendemott/txrest.git',
