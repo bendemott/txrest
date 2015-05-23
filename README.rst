@@ -148,9 +148,9 @@ this functionality is useful.
 
 **Return 400 Bad Request**::
 
-
     from twisted.internet import defer
     from twisted.web.http import BAD_REQUEST
+    from twisted.web.client import Agent, readBody
     from txrest.json import JsonResource, JsonErrorPage
 
     class RestDeferred(JsonResource):
@@ -174,9 +174,8 @@ Restful XML
 The Restful XML API is identical to the JSON api except it expects valid
 
 
-**Basic XML Get**
+**Basic XML Get**::
 
-::
     import xml.etree.ElementTree as etree 
     from txrest.xml import XmlResource
     
