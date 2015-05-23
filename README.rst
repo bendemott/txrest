@@ -176,7 +176,7 @@ The Restful XML API is identical to the JSON api except it expects valid
 
 **Basic XML Get**
 
-``` python
+::
     import xml.etree.ElementTree as etree 
     from txrest.xml import XmlResource
     
@@ -190,8 +190,6 @@ The Restful XML API is identical to the JSON api except it expects valid
             element.attrib['is_example'] = 'True'
             element.text = "Hello World!"
             return element
-        
-```
 
 Mixins
 ======
