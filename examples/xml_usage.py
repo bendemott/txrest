@@ -1,3 +1,7 @@
+"""
+This file documents various use cases of txrest.xml module.
+"""
+
 import sys
 from textwrap import dedent
 
@@ -5,9 +9,11 @@ from twisted.web import server, resource
 from twisted.internet import reactor, defer
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
+from twisted.python import log
+log.startLogging(sys.stdout)
 
 from txrest.xml import XmlResource
-from txrest.mixin import FormEncodedPost
+from txrest.mixin import FormEncodedPost, StringResponse
 
 # Get an etree from one of the many libraries that provides it.
 try:
@@ -23,6 +29,8 @@ except ImportError:
 class Root(resource.Resource):
     """
     A basic example, Twisteds built in resource handling.
+    
+    This will serve links at the root resource!
     """
     isLeaf = False
     
@@ -39,6 +47,7 @@ class Root(resource.Resource):
                 <a href="xml">Xml Deferred</a><br>
                 <a href="rest">Xml Catchall (rest method)</a><br>
                 <a href="form">Xml Post (mixin)</a><br>
+                <a href="string">Xml/string (mixin)</a><br>
             </body>      
         </html>'''
 
@@ -46,6 +55,12 @@ class Root(resource.Resource):
 class RestBasic(XmlResource):
     """
     return xml from a rest method. (simple)
+    
+    Notice how we support an xml 'Element' object being
+    returned.
+    
+    ``etree.fromstring()`` also returns an XML element, so we support
+    this.
     """
     
     def rest_GET(self, request):
@@ -123,7 +138,12 @@ class HandleFormPost(XmlResource):
     While still getting the automation of xml handling when
     the content-type does not indicate a form post.
     
-    Normally we expect 
+    Normally we expect proper xml to be posted... in the
+    event the post-body is a multipart form, or a url-encoded
+    form the parsed form contents will be assigned to post
+    and ``post`` will result in a dictionary instead of an
+    XML element; if however the post is XML then the body
+    of the xml will be parsed and returned as normal.
     """
     isLeaf = True
     
@@ -132,8 +152,28 @@ class HandleFormPost(XmlResource):
         root.text = 'hello world --- form args: %s' % str(post)
         return root
         
+        
+@StringResponse.mixin
+class StringMixinTest(XmlResource):
+    """
+    Normally XmlResource() wants us to output an Element()
+    object.  By decorating the resource we allow ourselves
+    to return a byte string.
+    """
+    isLeaf = True
+    
+    def rest_GET(self, request):
+        request.setHeader('content-type', 'text/plain')
+        return "string response!"
+    
+    def rest_POST(self, request, post):
+        # note that post is still XML!
+        request.setHeader('content-type', 'text/plain')
+        return "string response!"
+        
 # Setup a resource heirarchy using 'putChild' - notice how XmlResource() plays
 # nicely with regular resource.Resource() objects.
+defer.setDebugging(True)
 PORT = 8080
 res = Root()
 res.putChild('basic', RestBasic())
@@ -141,7 +181,8 @@ res.putChild('xml', RestDeferred())
 res.putChild('rest', RestCatchAll())
 res.putChild('form', Form())
 res.putChild('form-post', HandleFormPost())
+res.putChild('string', StringMixinTest())
 site = server.Site(res)
-reactor.callLater(1, sys.stdout.write, 'Listening at http://localhost:%s\n' % PORT)
+reactor.callLater(0.1, sys.stdout.write, 'Listening at http://localhost:%s\n' % PORT)
 reactor.listenTCP(PORT, site)
 reactor.run()

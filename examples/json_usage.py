@@ -1,9 +1,14 @@
+import json
+import sys
+
 from twisted.web import server, resource
 from twisted.internet import reactor, defer
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
+from twisted.python import log
+log.startLogging(sys.stdout)
 
-from txrest.json import JsonResource
+from txrest.json import JsonResource, JsonErrorPage
 
 class Root(resource.Resource):
     """
@@ -21,8 +26,10 @@ class Root(resource.Resource):
         <html>
             <body>
                 <a href="normal">Normal Deferred</a><br>
-                <a href="json">Json Deferred</a>
-                <a href="rest">Json Catchall (rest method)</a>
+                <a href="json">Json Deferred</a><br>
+                <a href="rest">Json Catchall (rest method)</a><br>
+                <a href="exception">Rest Exception</a><br>
+                <a href="errorpage">JsonErrorPage test</a><br>
             </body>      
         </html>'''
         
@@ -93,12 +100,45 @@ class RestCatchAll(JsonResource):
     def rest(request, *args):
         return {'method': 'rest'}
         
+  
+class RestException(JsonResource):
+    """
+    Just raise an exception to show how uncaught exceptions are returned.
+    """
+    isLeaf = True
+
+    def rest(request, *args):
+        raise RuntimeError('test raising an error.')
+        
+        
+class RestError(JsonResource):
+    """
+    The rest method will receive all requests... regardless of the
+    HTTP method/verb used.
+    """
+    isLeaf = True
+
+    def rest(request, *args):
+        if True != False:
+            return JsonErrorPage(
+                500,
+                "An Error Happened",
+                "This error is your fault, here are more details"
+            )
+        else:
+            return {'all': 'good'}
+        
 # Setup a resource heirarchy using 'putChild' - notice how JsonResource() plays
 # nicely with regular resource.Resource() objects.
+defer.setDebugging(True)
+PORT = 8080
 res = Root()
 res.putChild('normal', NormalDeferred())
 res.putChild('json', RestDeferred())
 res.putChild('rest', RestCatchAll())
+res.putChild('exception', RestException())
+res.putChild('errorpage', RestError())
 site = server.Site(res)
-reactor.listenTCP(8080, site)
+reactor.listenTCP(PORT, site)
+reactor.callLater(0.1, sys.stdout.write, 'Listening at http://localhost:%s\n' % PORT)
 reactor.run()

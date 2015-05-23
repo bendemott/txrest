@@ -7,7 +7,7 @@ class ResourceMixin(object):
     
     Usage::
         
-        @FormEncodedPost.mixin
+        @ResourceMixin.mixin
         class MixedResource(XmlResource):
             pass
             
@@ -18,7 +18,16 @@ class ResourceMixin(object):
     '''
     Define the names of the methods you want to overwrite.
     '''
-    methods = [] 
+    methods = []
+    
+    @classmethod
+    def setup(cls, impl_cls):
+        """
+        Called when the function is decorated, you will be passed the 'impl_cls'
+        instance which is the class you are decorating if you want to modify the class
+        at the time of decoration.
+        """
+        pass
     
     @classmethod
     def mixin(cls, impl_cls):
@@ -38,6 +47,8 @@ class ResourceMixin(object):
             # replace the existing method on the class with our method.
             # setattr(impl_cls, meth_name, types.MethodType(impl_cls, method)) ( doesnt work )
             setattr(impl_cls, meth_name, func)
+            
+        cls.setup(impl_cls)
         return impl_cls
           
 
@@ -68,7 +79,7 @@ class EmptyPost(ResourceMixin):
         if not body.strip() or body is None:
             return None
         else:
-            return super(EmptyPost, self)._format_post(request, response, encoding)
+            return super(self.__class__, self)._format_post(request, response, encoding)
         
 
 class FormEncodedPost(ResourceMixin):
@@ -101,7 +112,7 @@ class FormEncodedPost(ResourceMixin):
 
 # -- RESPONSE MIXINS ----------------------------------------------------------    
 
-class RawResponse(ResourceMixin):
+class StringResponse(ResourceMixin):
     """
     Add support for writing your own response as a string
     
@@ -109,12 +120,21 @@ class RawResponse(ResourceMixin):
     """
     methods = ['_format_response']
     
+    @classmethod
+    def setup(cls, impl_cls):
+        """
+        Make the class accept basestring
+        """
+        impl_cls.HANDLE_TYPES = tuple(list(impl_cls.HANDLE_TYPES) + [basestring])
+    
     def _format_response(self, request, response, encoding):
         """
         Allow the returning of a response that is a string
         """
-        if isinstance(response, basestring):
+        if isinstance(response, str):
             return response
+        elif isinstance(response, unicode):
+            return response.encode(encoding)
         else:
-            return super(RawResponse, self)._format_post(request, response, encoding)
+            return super(self.__class__, self)._format_response(request, response, encoding)
     

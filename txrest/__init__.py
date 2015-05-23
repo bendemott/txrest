@@ -5,6 +5,7 @@ Rest interfaces of different data-types (JSON / XML) have interface similarities
 those are documented in ``txrest.RestResource``.
 """
 
+from os.path import abspath
 import time
 import traceback
 import codecs
@@ -275,17 +276,14 @@ class RestResource(resource.Resource, object):
         :param request: ``twisted.web.server.Request`` instance
         """
         fq_name = self.__module__ + '.' + self.__class__.__name__
+        file_path = abspath(inspect.getfile(self.__class__))
 
         if failure.check(CancelledError):
             # the request / deferred chain has been cancelled early.
             # doesn't matter if we respond no one is listening.
-            rstr = self.ERROR_CLASS(
-                        INTERNAL_SERVER_ERROR, 
-                        failure.getMessage(), 
-                        failure.getTraceback()
-                   ).render(request)
+            rstr = err = 'Request was cancelled'
         elif failure.check(_DefGen_Return):
-            tb = failure.getTraceback()
+            failure.printBriefTraceback()
             err = dedent('''
                 Received a Deferred Generator Response from Resource (%s)
                 in the method:  [%s] ....................................
@@ -295,21 +293,23 @@ class RestResource(resource.Resource, object):
                 
                 If you do not have a yield statement, you should use a regular
                 `return` statement and remove `defer.returnValue()`
-            ''' % (fq_name, request.method_called, inspect.getfile(self.__class__))).strip()
+            ''' % (fq_name, request.method_called, file_path)).strip()
             
-            log.err(err + '-'*20 + '\nException: ' + str(tb))
+            log.err(err + ' - ' + failure.getErrorMessage())
             rstr = self.ERROR_CLASS(
-                        INTERNAL_SERVER_ERROR, 
+                        INTERNAL_SERVER_ERROR,
                         err,
-                        str(tb)
+                        failure.getErrorMessage(),
+                        log=False
                    ).render(request)
         else:
-            tb = failure.getTraceback()
-            log.err('Exception in Resource (%s) [%s]\n%s' % (fq_name, request.method_called, str(tb)))
+            log.err('Exception in Resource (%s) [%s] <%s> - %s' % (fq_name, request.method_called, file_path, failure.getErrorMessage()))
+            failure.printTraceback()
             rstr = self.ERROR_CLASS(
-                        INTERNAL_SERVER_ERROR, 
-                        'Exception in Resource (%s) [%s]' % (fq_name, request.method_called),
-                        str(tb)
+                        INTERNAL_SERVER_ERROR,
+                        'Unhandled Error',
+                        'Exception in Resource (%s) [%s] <%s> - %s' % (fq_name, request.method_called, file_path, failure.getTraceback()),
+                        log=False
                    ).render(request)
 
         if request.finished:

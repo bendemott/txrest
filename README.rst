@@ -6,57 +6,73 @@ The api is implemented by exposing custom Resource() classes.
 Rest-Resources behave almost identical to ``Twisteds`` ``resource.Resource()`` classes.
 
 The major difference is we support returning a **deferred** and you use the methods 
-``rest_GET``, ``rest_POST``... instead of ``render_GET`` and render_POST``.
+``rest_GET``, ``rest_POST``... instead of ``render_GET`` and ``render_POST``.
 
 Restful JSON
 ============
 To implement a restful JSON client we'll be using the ``txrest.json.JsonResource`` class.
 
-**Quickstart (Simple)**::
+**Quickstart (Simple)**:: python
 
-        from txrest.json import JsonResource
-        class MyJsonResource(JsonResource):
-            isLeaf = True
+    from twisted.internet import reactor
+    from twisted.web import server
+    from txrest.json import JsonResource
+    
+    class MyJsonResource(JsonResource):
+        isLeaf = True
 
-            def rest(self, request, post=None):
-                # For all Methods return hello world JSON
-                defer.returnValue({"hello": "world"})
-                
-        site = server.Site(MyJsonResource())
-        reactor.listenTCP(8080, site)
-        reactor.run()
-
-**Quickstart (GET)**::
-
-        from txrest.json import JsonResource
-        class MyJsonResource(JsonResource):
-            isLeaf = True
- 
-            @defer.inlineCallbacks
-            def rest_GET(self, request):
-                _ = yield reactor.callLater(1, hello, 'everyone')
-                defer.returnValue({"hello": "world"})
-                
-        site = server.Site(MyJsonResource())
-        reactor.listenTCP(8080, site)
-        reactor.run()
- 
-**Quickstart (POST)**::
+        def rest(self, request, post=None):
+            # For all Methods return hello world JSON
+            return {"hello": "world"}
             
-        from txrest.json import JsonResource
-        class MyJsonResource(JsonResource):
-            isLeaf = True
+    site = server.Site(MyJsonResource())
+    reactor.listenTCP(8080, site)
+    reactor.run()
+
+**Quickstart (GET)**:: python
+
+    import sys, time
+    from twisted.internet import reactor, defer, task
+    from twisted.web import server
+    from twisted.python import log
+    log.startLogging(sys.stdout)
+    from txrest.json import JsonResource
+
+    class MyJsonResource(JsonResource):
+        isLeaf = True
+
+        @defer.inlineCallbacks
+        def rest_GET(self, request):
+            _ = yield task.deferLater(reactor, 1, log.msg, 'the wait is over!')
+            defer.returnValue({"hello": "world %s" % time.time()})
+
+    defer.setDebugging(True)
+    site = server.Site(MyJsonResource())
+    reactor.listenTCP(8080, site)
+    reactor.run()
  
-            @defer.inlineCallbacks
-            def rest_POST(self, request, post):
-                # post should be a dictionary or a list
-                post['hello'] = 'world'
-                _ = yield reactor.callLater(1, lambda: True)
-                defer.returnValue(post)  # return the contents of what we posted.
-                
-        site = server.Site(MyJsonResource())
-        reactor.listenTCP(8080, site)
-        reactor.run()
+**Quickstart (POST)**:: python
+            
+    import sys, time
+    from twisted.internet import reactor, defer, task
+    from twisted.web import server
+    from twisted.python import log
+    log.startLogging(sys.stdout)      
+    from txrest.json import JsonResource
+    
+    class MyJsonResource(JsonResource):
+        isLeaf = True
+
+        @defer.inlineCallbacks
+        def rest_POST(self, request, post):
+            # post should be a dictionary or a list
+            post['hello'] = 'world'
+            _ = yield task.deferLater(reactor, 1, log.msg, 'the wait is over!')
+            defer.returnValue(post)  # return the contents of what we posted.
+            
+    site = server.Site(MyJsonResource())
+    reactor.listenTCP(8080, site)
+    reactor.run()
             
 Standard vs TxRest Comparison
 -----------------------------
@@ -117,10 +133,9 @@ of responses and POST bodies to JSON types offers a fair amount of conveniance.
 In addition we support returning resources from the ``rest_*`` methods, which means 
 you can return a Resource object as a response.
 
-
 Handling Errors in your Resource
 --------------------------------
-Twisted has a built in version of an "error page" ``twisted.web.resource.ErrorPage`` 
+Twisted has a built in version of an "error page" ``twisted.web.resource.ErrorPage``
 that sets the http response code for you and formats an error.  
 This page is returned whenever there is an unhandled exception.
 
@@ -134,6 +149,7 @@ this functionality is useful.
 **Return 400 Bad Request**::
 
 
+    from twisted.internet import defer
     from twisted.web.http import BAD_REQUEST
     from txrest.json import JsonResource, JsonErrorPage
 
@@ -150,3 +166,60 @@ this functionality is useful.
             result = yield agent.request('GET', 'http://example.com/')
             body = yield readBody(result)
             defer.returnValue({'web-request': str(body)})
+            
+            
+            
+Restful XML
+===========
+The Restful XML API is identical to the JSON api except it expects valid
+
+
+**Basic XML Get**:: python
+
+    import xml.etree.ElementTree as etree 
+    from txrest.xml import XmlResource
+    
+    class RestBasic(XmlResource):
+        """
+        return xml from a rest method. (simple)
+        """
+        
+        def rest_GET(self, request):
+            element = etree.Element('example')
+            element.attrib['is_example'] = 'True'
+            element.text = "Hello World!"
+            return element
+        
+**
+
+Mixins
+======
+If you want to modify the way a particular resource you implement handles it's POST bodies
+or it's responses we have mixins you can use that decorate your ``Resource`` class.
+
+Mixins are located in the module ``txrest.mixins`` - They can be used with both ``JsonResource``
+and ``XmlResource``
+
+Here's a basic example that allows us to return non-standard responses, in this case
+a string instead of an XML object.
+
+:: python
+
+    from txrest.xml import XmlResource
+    from txrest.mixin import StringResponse
+
+    @StringResponse.mixin
+    class StringMixinTest(XmlResource):
+        """
+        Normally XmlResource() wants us to output an Element()
+        object.  By decorating the resource we allow ourselves
+        to return a byte string.
+        """
+        isLeaf = True
+        
+        def rest_GET(self, request):
+            request.setHeader('content-type', 'text/plain')
+            return "string response!"
+
+
+
