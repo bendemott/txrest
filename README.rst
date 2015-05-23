@@ -12,7 +12,7 @@ Restful JSON
 ============
 To implement a restful JSON client we'll be using the ``txrest.json.JsonResource`` class.
 
-**Quickstart (Simple)**:: python
+**Quickstart (Simple)**::
 
     from twisted.internet import reactor
     from twisted.web import server
@@ -29,7 +29,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
     reactor.listenTCP(8080, site)
     reactor.run()
 
-**Quickstart (GET)**:: python
+**Quickstart (GET)**::
 
     import sys, time
     from twisted.internet import reactor, defer, task
@@ -51,7 +51,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
     reactor.listenTCP(8080, site)
     reactor.run()
  
-**Quickstart (POST)**:: python
+**Quickstart (POST)**::
             
     import sys, time
     from twisted.internet import reactor, defer, task
@@ -174,8 +174,9 @@ Restful XML
 The Restful XML API is identical to the JSON api except it expects valid
 
 
-**Basic XML Get**:: python
+**Basic XML Get**
 
+``` python
     import xml.etree.ElementTree as etree 
     from txrest.xml import XmlResource
     
@@ -190,7 +191,7 @@ The Restful XML API is identical to the JSON api except it expects valid
             element.text = "Hello World!"
             return element
         
-**
+```
 
 Mixins
 ======
@@ -203,7 +204,7 @@ and ``XmlResource``
 Here's a basic example that allows us to return non-standard responses, in this case
 a string instead of an XML object.
 
-:: python
+::
 
     from txrest.xml import XmlResource
     from txrest.mixin import StringResponse
