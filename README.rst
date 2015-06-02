@@ -8,6 +8,25 @@ Rest-Resources behave almost identical to ``Twisteds`` ``resource.Resource()`` c
 The major difference is we support returning a **deferred** and you use the methods 
 ``rest_GET``, ``rest_POST``... instead of ``render_GET`` and ``render_POST``.
 
+Installation
+------------
+
+**install from PyPI**::
+    
+    ``sudo pip install txrest``
+
+**Directly from github (newest)**::
+
+    sudo pip install git+https://github.com/bendemott/txrest.git
+    
+    
+**Note**:
+
+    The only dependency required by ``txrest`` is ``twisted``.  If you do not want
+    Twisted installed from pip you can install txrest without dependencies using:
+    
+    ``pip install txrest --no-deps``
+
 Restful JSON
 ============
 To implement a restful JSON client we'll be using the ``txrest.json.JsonResource`` class.

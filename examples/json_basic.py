@@ -5,7 +5,6 @@ to show the usage of inlineCallbacks
 import sys, time
 from twisted.internet import reactor, defer, task
 from twisted.web import server
-from twisted.internet.task import deferLater
 from twisted.python import log
 log.startLogging(sys.stdout)
 from txrest.json import JsonResource

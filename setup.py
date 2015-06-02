@@ -9,7 +9,6 @@ To install from pypi::
     sudo pip install txrest
     
 **To upload to PyPi**:
-    https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
     Create a file named ``.pypirc`` with the contents::
     
         [distutils]
@@ -26,6 +25,12 @@ To install from pypi::
         repository = https://pypi.python.org/pypi
         username = <your production user name goes here>
         password = <your production password goes here>
+        
+        
+    # then issue these commands
+    python setup.py register -r pypi
+    python setup.py sdist upload -r pypi
+
 """
 
 try:
@@ -45,10 +50,15 @@ except ImportError:
     
 setup(
     name='txrest',
+    version='0.6.3',
     url='https://github.com/bendemott/txrest.git',
     #test_suite="nose.collector", # TODO !!!
+    description='Asynchronous Rest/JSON API using Twisted',
     license='MIT',
-    version='0.6.2',
+    author='Ben DeMott',
+    author_email='ben.demott@gmail.com',
+    keywords=['twisted', 'rest', 'json', 'resource', 'api'],
+    install_requires=['twisted'],
     packages=['txrest'],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
