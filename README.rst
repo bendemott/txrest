@@ -13,7 +13,7 @@ Installation
 
 **install from PyPI**::
     
-    ``sudo pip install txrest``
+    sudo pip install txrest
 
 **Directly from github (newest)**::
 
@@ -84,7 +84,7 @@ To implement a restful JSON client we'll be using the ``txrest.json.JsonResource
 
         @defer.inlineCallbacks
         def rest_POST(self, request, post):
-            # post should be a dictionary or a list
+            # post will be a dictionary or a list
             post['hello'] = 'world'
             _ = yield task.deferLater(reactor, 1, log.msg, 'the wait is over!')
             defer.returnValue(post)  # return the contents of what we posted.
@@ -190,7 +190,10 @@ this functionality is useful.
             
 Restful XML
 ===========
-The Restful XML API is identical to the JSON api except it expects valid
+The Restful XML API is identical to the JSON api except it expects valid xml via an Element object
+from any ``etree`` compatible xml api.  Note that ``lxml`` and ``xml.etree`` are supported.
+
+``Element`` objects returned from ``etree.fromstring('<element>value</element>')`` are supported.
 
 
 **Basic XML Get**::
