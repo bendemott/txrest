@@ -1,0 +1,31 @@
+A testing suite is coming, I'm working on it - here is a placeholder of some of my todos.
+
+Test post errors
+Test post
+Test get
+Test showTraceback is obeyed...
+
+Test error message is shown when a deferred is returned.
+Test recursive resource rendering
+Test that allowedMethods is obeyed when implemented in client code
+Test that not-callable error is raised properly.
+Test rest() catch-all works.
+test rest_GET, rest_PUT, rest_POST, rest_DELETE
+test _format_post raises error with malformed body.
+test _format_response raises error when json parse fails.
+
+test unicode responses
+test unicode posts
+
+test regular resource logic works
+test addChild logic works
+test defining getChild() logic works
+
+test mixins (inherited, and backwards behavior)
+
+test xml api's
+test raise exception on bad posts
+
+test (TODO / implement) render_GET is prioritized before rest_GET, and allowed methods inherits
+logic for any render_* methods being defined to preserve backwards compatability with twisteds
+Resource() class.
