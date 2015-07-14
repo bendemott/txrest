@@ -9,13 +9,12 @@ import logging
 
 from twisted.python import log
 from twisted.web import resource
-from twisted.web.http import BAD_REQUEST
 
 from txrest import RestResource, DEFAULT_ENCODING
 
-
 ACCEPT_HEADER = b'application/json'
 CONTENT_TYPE_HEADER = b'application/json; charset=%s'
+
 
 class JsonErrorPage(resource.ErrorPage):
     """
@@ -60,7 +59,7 @@ class JsonErrorPage(resource.ErrorPage):
 
     """
 
-    def __init__(self, status, brief, detail, encoding=DEFAULT_ENCODING, log=True):
+    def __init__(self, status, brief, detail, encoding=DEFAULT_ENCODING, is_logged=True):
         """
         Note that the signature of this function and the names of the variables have been
         kept identical to the original version of this class.
@@ -71,17 +70,16 @@ class JsonErrorPage(resource.ErrorPage):
         :param brief: Error Type
         :param detail: Error Description
         :param encoding: Encoding to use when sending response
-        :param log: log the error to twisted logging mechanism.
+        :param is_logged: log the error to twisted logging mechanism.
         """
         # arguments are left identical to ErrorPage
         resource.Resource.__init__(self)
-        
+
         self.code = status
         self.brief = brief
         self.detail = detail
         self.encoding = encoding
-        self.log = log
-        
+        self.is_logged = is_logged
 
     def render(self, request):
         """
@@ -92,22 +90,22 @@ class JsonErrorPage(resource.ErrorPage):
             "error": self.brief.encode(self.encoding),
             "detail": unicode(self.detail).encode(self.encoding),
         }
-        
+
         if not request.site.displayTracebacks:
             response['detail'] = None
-            
-        if self.log:
+
+        if self.is_logged:
             # ensure strings get represented in the logs even with nonsense in them
             # (un-encodable strings get saved still)
             brief = normalize('NFKD', unicode(self.brief)).encode('ASCII', 'ignore')
             detail = normalize('NFKD', unicode(self.detail)).encode('ASCII', 'ignore')
-                
+
             # ErrorPage: [500] Invalid Name - Expected int, 
             log.msg(
-                "%s: [%s] %s - %s" % (self.__class__.__name__, self.code, brief, detail), 
+                "%s: [%s] %s - %s" % (self.__class__.__name__, self.code, brief, detail),
                 logLevel=logging.WARNING
             )
-        
+
         request.setResponseCode(self.code)
         request.setHeader(b'accept', ACCEPT_HEADER)
         request.setHeader(b'content-type', CONTENT_TYPE_HEADER % self.encoding)
@@ -115,17 +113,16 @@ class JsonErrorPage(resource.ErrorPage):
         rstr = json.dumps(
             response,
             allow_nan=False,
-            check_circular=False, 
-            ensure_ascii=False, 
+            check_circular=False,
+            ensure_ascii=False,
             encoding=self.encoding,
             # -- pretty-print --
             sort_keys=True,
             indent=4)
         return rstr
-        
+
     def __str__(self):
         return "%s: [%s] %s - %s" % (self.__class__.__name__, self.code, self.brief, self.detail)
-
 
 
 class JsonResource(RestResource):
@@ -184,7 +181,7 @@ class JsonResource(RestResource):
     CONTENT_TYPE = CONTENT_TYPE_HEADER
     HANDLE_TYPES = (dict, list, tuple)
     ERROR_CLASS = JsonErrorPage
-    
+
     def _format_response(self, request, response, encoding):
         """
         When a type in HANDLE_TYPES is returned, the super-class (RestResource)
@@ -201,13 +198,12 @@ class JsonResource(RestResource):
         """
         rstr = json.dumps(
             response,
-            allow_nan=False, # strict compliance to JSON
-            check_circular=False, # speedup
-            ensure_ascii=False, # allows the result to be a UNICODE object.
+            allow_nan=False,  # strict compliance to JSON
+            check_circular=False,  # speedup
+            ensure_ascii=False,  # allows the result to be a UNICODE object.
             encoding=encoding
         ).encode(encoding)
         return rstr
-        
 
     def _format_post(self, request, body, encoding):
         """

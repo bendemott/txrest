@@ -1,6 +1,7 @@
 import types
 from txrest import RestResource
 
+
 class ResourceMixin(object):
     """
     Base class for all mixins.
@@ -19,7 +20,7 @@ class ResourceMixin(object):
     Define the names of the methods you want to overwrite.
     '''
     methods = []
-    
+
     @classmethod
     def setup(cls, impl_cls):
         """
@@ -28,7 +29,7 @@ class ResourceMixin(object):
         at the time of decoration.
         """
         pass
-    
+
     @classmethod
     def mixin(cls, impl_cls):
         """
@@ -37,20 +38,20 @@ class ResourceMixin(object):
         :param impl_cls: the class we are decorating
         """
         for meth_name in cls.methods:
-            
+
             method = getattr(cls, meth_name, None)
             if method is None:
                 raise ValueError("The method [%s] was defined as a mixin, "
-                    "but is not implemented in the mixin class [%s]" % (meth_name, cls.__name__))
+                                 "but is not implemented in the mixin class [%s]" % (meth_name, cls.__name__))
             # get the function, not the unbound method.
             func = cls.__dict__[meth_name]
             # replace the existing method on the class with our method.
             # setattr(impl_cls, meth_name, types.MethodType(impl_cls, method)) ( doesnt work )
             setattr(impl_cls, meth_name, func)
-            
+
         cls.setup(impl_cls)
         return impl_cls
-          
+
 
 class EmptyPost(ResourceMixin):
     """
@@ -65,8 +66,8 @@ class EmptyPost(ResourceMixin):
     The value of the ``post`` parameter passed into any function will be ``None``
     when empty, or white-space POST bodies are present.
     """
-    methods = ['_format_post'] # override these methods if we are mixed in.
-    
+    methods = ['_format_post']  # override these methods if we are mixed in.
+
     def _format_post(self, request, body, encoding):
         """
         Forward request.args
@@ -79,8 +80,8 @@ class EmptyPost(ResourceMixin):
         if not body.strip() or body is None:
             return None
         else:
-            return super(self.__class__, self)._format_post(request, response, encoding)
-        
+            return super(self.__class__, self)._format_post(request, body, encoding)
+
 
 class FormEncodedPost(ResourceMixin):
     """
@@ -90,8 +91,8 @@ class FormEncodedPost(ResourceMixin):
     """
     WWW_FORM = 'application/x-www-form-urlencoded'
     FORM_DATA = 'multipart/form-data'
-    methods = ['_format_post'] # override _format_post
-    
+    methods = ['_format_post']  # override _format_post
+
     def _format_post(self, request, body, encoding):
         """
         Forward request.args to body
@@ -102,15 +103,16 @@ class FormEncodedPost(ResourceMixin):
                          ``json.loads(encoding='<encoding>')``
         """
         content_type = request.getHeader('Content-Type')
-        
+
         form_encoded = (True if (content_type == FormEncodedPost.WWW_FORM or
-                        FormEncodedPost.FORM_DATA in content_type) else False)
+                                 FormEncodedPost.FORM_DATA in content_type) else False)
         if form_encoded:
             return request.args
         else:
             return super(self.__class__, self)._format_post(request, body, encoding)
 
-# -- RESPONSE MIXINS ----------------------------------------------------------    
+
+# -- RESPONSE MIXINS ----------------------------------------------------------
 
 class StringResponse(ResourceMixin):
     """
@@ -119,14 +121,14 @@ class StringResponse(ResourceMixin):
     Falls back to the parent class method when the response is not a string.
     """
     methods = ['_format_response']
-    
+
     @classmethod
     def setup(cls, impl_cls):
         """
         Make the class accept basestring
         """
         impl_cls.HANDLE_TYPES = tuple(list(impl_cls.HANDLE_TYPES) + [basestring])
-    
+
     def _format_response(self, request, response, encoding):
         """
         Allow the returning of a response that is a string
@@ -137,4 +139,3 @@ class StringResponse(ResourceMixin):
             return response.encode(encoding)
         else:
             return super(self.__class__, self)._format_response(request, response, encoding)
-    

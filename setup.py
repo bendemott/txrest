@@ -32,6 +32,8 @@ To install from pypi::
     python setup.py sdist upload -r pypi
 
 """
+import os
+import sys
 
 try:
     # setuptools first, because it provides "developer"
@@ -47,12 +49,12 @@ except ImportError:
         from distutils import setup
     except ImportError:
         from distutils.core import setup
-    
+
 setup(
     name='txrest',
-    version='0.6.3',
+    version='0.6.4',
     url='https://github.com/bendemott/txrest.git',
-    #test_suite="nose.collector", # TODO !!!
+    # test_suite="nose.collector", # TODO !!!
     description='Asynchronous Rest/JSON API using Twisted',
     license='MIT',
     author='Ben DeMott',
