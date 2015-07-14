@@ -6,21 +6,23 @@ from twisted.internet import reactor, defer
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
 from twisted.python import log
+
 log.startLogging(sys.stdout)
 
 from txrest.json import JsonResource, JsonErrorPage
+
 
 class Root(resource.Resource):
     """
     A basic example, Twisteds built in resource handling.
     """
     isLeaf = False
-    
+
     def getChild(self, name, request):
         if name == '':
             return self
         return resource.Resource.getChild(self, name, request)
-    
+
     def render_GET(self, request):
         return '''
         <html>
@@ -32,7 +34,7 @@ class Root(resource.Resource):
                 <a href="errorpage">JsonErrorPage test</a><br>
             </body>      
         </html>'''
-        
+
 
 class NormalDeferred(resource.Resource):
     """
@@ -42,33 +44,32 @@ class NormalDeferred(resource.Resource):
     isLeaf = True
 
     def render_GET(self, request):
-    
         def fail(failure):
             request.write('we failed %s' % failure)
             request.finish()
-    
+
         def return_body(body):
             """Called when we have a full response"""
             response = {'web-request': body}
             response = json.dumps(response, ensure_ascii=False, encoding='utf-8').encode('utf-8')
-            request.write(body)
+            request.write(response)
             request.finish()
-    
+
         def get_body(result):
             # now that we have the body, 
             # we can return the result, using ready body
             # which is also a async operation.
-            d2 = readBody(result) # get the  contents of the page.
+            d2 = readBody(result)  # get the  contents of the page.
             d2.addCallback(return_body)
             d2.addErrback(fail)
-    
+
         # setup the deferred/callback for the first asynchronous 
         # call...
         agent = Agent(reactor)
         d1 = agent.request('GET', 'http://example.com/')
         d1.addCallback(get_body)
         d1.addErrback(fail)
-        
+
         return server.NOT_DONE_YET
 
 
@@ -83,13 +84,14 @@ class RestDeferred(JsonResource):
     def rest_GET(self, request):
         agent = Agent(reactor)
         result = yield agent.request('GET', 'http://example.com/')
-        body = yield readBody(result) # get the  contents of the page.
+        body = yield readBody(result)  # get the  contents of the page.
         defer.returnValue({'web-request': str(body)})
-        
+
     def rest_POST(self, request, post):
         post['note'] = 'Here is what you posted... returned to you!'
         return post
-        
+
+
 class RestCatchAll(JsonResource):
     """
     The rest method will receive all requests... regardless of the
@@ -99,8 +101,8 @@ class RestCatchAll(JsonResource):
 
     def rest(request, *args):
         return {'method': 'rest'}
-        
-  
+
+
 class RestException(JsonResource):
     """
     Just raise an exception to show how uncaught exceptions are returned.
@@ -109,8 +111,8 @@ class RestException(JsonResource):
 
     def rest(request, *args):
         raise RuntimeError('test raising an error.')
-        
-        
+
+
 class RestError(JsonResource):
     """
     The rest method will receive all requests... regardless of the
@@ -127,7 +129,7 @@ class RestError(JsonResource):
             )
         else:
             return {'all': 'good'}
-        
+
 # Setup a resource heirarchy using 'putChild' - notice how JsonResource() plays
 # nicely with regular resource.Resource() objects.
 defer.setDebugging(True)

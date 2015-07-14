@@ -20,22 +20,22 @@ from twisted.web.http import (INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE, BAD_RE
 from twisted.web.error import UnsupportedMethod
 from twisted.internet.error import (ConnectionDone, ConnectionLost, ConnectionAborted)
 from twisted.python.reflect import prefixedMethodNames
-from twisted.python import log
+from twisted.python import log, failure
 from twisted.python.compat import intToBytes
-
 
 REST_METHOD = 'rest'
 REST_METHOD_PREFIX = 'rest_'
 DEFAULT_ENCODING = 'utf-8'
 
-RECURSION_DEPTH = 5 # the IETF suggests an HTTP redirect limit of 5 (this is a similar concept)
+RECURSION_DEPTH = 5  # the IETF suggests an HTTP redirect limit of 5 (this is a similar concept)
+
 
 class ResourceRecursionLimit(Exception):
     """
     Raised when too many Resources have been returned from other Resources.
     """
     pass
-    
+
 
 class RestResource(resource.Resource, object):
     """
@@ -87,7 +87,7 @@ class RestResource(resource.Resource, object):
     
     We populate the request variable ``started`` to an epoch at the request start time.
     """
-    
+
     # -- SUBCLASSES MUST IMPLEMENT THESE CLASS ATTRIBUTES ---------------------
     # ERROR_CLASS - a customized subclass of ``twisted.web.resource.ErrorPage``
     # ACCEPT - a bytes string defining the ACCEPT header.
@@ -95,24 +95,24 @@ class RestResource(resource.Resource, object):
     # HANDLE_TYPES - a sequence containing the response types that the subclass will
     #                parse and serialize.
     SUBCLASS_ATTRS = ('ACCEPT', 'CONTENT_TYPE', 'HANDLE_TYPES', 'ERROR_CLASS')
-    
+
     def __init__(self, encoding=DEFAULT_ENCODING, *args, **kwargs):
         """
         :param encoding: (optional) string encoding to use for requests and responses.
         """
         self.encoding = encoding
         resource.Resource.__init__(self, *args, **kwargs)
-        
+
         # check to make sure the encoding is valid
         # raises "LookupError: unknown encoding: bad-encoding"
         valid = codecs.lookup(encoding)
-        
+
         # check to make sure the subclass has defind attributes
         for attr in self.SUBCLASS_ATTRS:
             if not hasattr(self, attr):
                 raise ValueError(
-                    '%s must implement the class attribute %s' % (self.__class__.__name__), attr)
-    
+                    '%s must implement the class attribute %s' % (self.__class__.__name__, attr))
+
     def render_HEAD(self, request):
         """
         The default behavior of HEAD for a REST api is to return an empty
@@ -125,7 +125,7 @@ class RestResource(resource.Resource, object):
         :param request: a ``twisted.web.server.Request`` instance
         """
         return ''
-        
+
     def render(self, request):
         """
         Handle resource request normally, and then redirect the rendering to a
@@ -136,7 +136,7 @@ class RestResource(resource.Resource, object):
         # set json content type for response
         request.started = time.time()
         request.recursion = 0
-        request.setHeader(b'accept', self.ACCEPT) # THIS GETS SET FROM SUPER CLASS
+        request.setHeader(b'accept', self.ACCEPT)  # THIS GETS SET FROM SUPER CLASS
         request.setHeader(b'content-type', self.CONTENT_TYPE % self.encoding)
         fq_name = self.__module__ + '.' + self.__class__.__name__
         meth_name = REST_METHOD_PREFIX + str(request.method)
@@ -152,12 +152,12 @@ class RestResource(resource.Resource, object):
                 allowed_methods = self.allowedMethods
             else:
                 allowed_methods = self._allowed_methods()
-            raise UnsupportedMethod(allowed_methods) # ``twisted.web.server.Request`` handles this
+            raise UnsupportedMethod(allowed_methods)  # ``twisted.web.server.Request`` handles this
 
         if not callable(method):
             err = "Resource (`%s.%s()`) is not callable" % (fq_name, meth_name)
             log.err(err)
-            return self.ERROR_CLASS(INTERNAL_SERVER_ERROR, 'Resource Error', err, log=False).render(request)
+            return self.ERROR_CLASS(INTERNAL_SERVER_ERROR, 'Resource Error', err, is_logged=False).render(request)
 
         request.method_called = meth_name
 
@@ -173,18 +173,17 @@ class RestResource(resource.Resource, object):
             except Exception as e:
                 err = 'Failed reading HTTP BODY\n' + traceback.format_exc()
                 log.err(err)
-                return self.ERROR_CLASS(BAD_REQUEST, 'Malformed HTTP BODY', err, log=False).render(request)
-            
+                return self.ERROR_CLASS(BAD_REQUEST, 'Malformed HTTP BODY', err, is_logged=False).render(request)
+
             try:
                 body_data = self._format_post(request, body, self.encoding)
             except Exception as e:
                 err = 'Failed parsing HTTP BODY\n' + traceback.format_exc()
                 log.err(err)
-                return self.ERROR_CLASS(BAD_REQUEST, 'Malformed HTTP BODY', err, log=False).render(request)
-            
+                return self.ERROR_CLASS(BAD_REQUEST, 'Malformed HTTP BODY', err, is_logged=False).render(request)
+
             call_args.append(body_data)
-            
-            
+
         # -- Setup Response Callbacks -----------------------------------------
         # wrap the response in a maybeDeferred so we only
         # have one code path to deal with.
@@ -218,7 +217,7 @@ class RestResource(resource.Resource, object):
             return
 
         fq_name = self.__module__ + '.' + self.__class__.__name__
-        
+
         if isinstance(response, self.HANDLE_TYPES):
             # Check to see that our subclass has 
             try:
@@ -231,7 +230,7 @@ class RestResource(resource.Resource, object):
                     fq_name, request.method_called, traceback.format_exc())
                 log.err(debug)
                 rstr = self.ERROR_CLASS(
-                    INTERNAL_SERVER_ERROR, 'Resource Error', debug, log=False).render(request)
+                    INTERNAL_SERVER_ERROR, 'Resource Error', debug, is_logged=False).render(request)
             # in this case we know the content-length of the reply, so set
             # the header so the response encoding doesn't become "chunked"
             request.setHeader(b'content-length', intToBytes(len(rstr)))
@@ -239,7 +238,7 @@ class RestResource(resource.Resource, object):
             # if we don't call finish the connection will be left open and the
             # response buffer won't be sent/flushed!
             request.finish()
-             
+
         elif isinstance(response, resource.Resource):
             # if the application returns a resource, render the resource... or 
             # fail if we've rendered too many resources for this request already.
@@ -247,14 +246,14 @@ class RestResource(resource.Resource, object):
             # just a raw resource.Resource
             # the IETF suggests an HTTP redirect limit of 5 (this is a similar concept)
             depth = request.recursion
-            if depth >= RECURSION_DEPTH: 
+            if depth >= RECURSION_DEPTH:
                 exc = ResourceRecursionLimit('Recursion Limit Exceeded [%i] (%s) at Resource (%s)' % (
                     depth, request.uri, fq_name))
-                request.processingFailed(failure.Failure(exc)) # this will finish the request
+                request.processingFailed(failure.Failure(exc))  # this will finish the request
             else:
                 request.recursion += 1
                 reactor.callLater(0, request.render, response)
-                
+
         else:
             # If the response from the rest method isn't a serializable type, or resource
             # then we have a problem... and this is a big deal because there is
@@ -263,10 +262,9 @@ class RestResource(resource.Resource, object):
                 fq_name, request.method_called, type(response))
             log.err(debug)
             response = self.ERROR_CLASS(
-                INTERNAL_SERVER_ERROR, 'Resource Error', debug, log=False).render(request)
+                INTERNAL_SERVER_ERROR, 'Resource Error', debug, is_logged=False).render(request)
             request.write(response)
             request.finish()
-
 
     def on_failure(self, failure, request):
         """
@@ -294,30 +292,31 @@ class RestResource(resource.Resource, object):
                 If you do not have a yield statement, you should use a regular
                 `return` statement and remove `defer.returnValue()`
             ''' % (fq_name, request.method_called, file_path)).strip()
-            
+
             log.err(err + ' - ' + failure.getErrorMessage())
             rstr = self.ERROR_CLASS(
-                        INTERNAL_SERVER_ERROR,
-                        err,
-                        failure.getErrorMessage(),
-                        log=False
-                   ).render(request)
+                INTERNAL_SERVER_ERROR,
+                err,
+                failure.getErrorMessage(),
+                is_logged=False
+            ).render(request)
         else:
-            log.err('Exception in Resource (%s) [%s] <%s> - %s' % (fq_name, request.method_called, file_path, failure.getErrorMessage()))
+            log.err('Exception in Resource (%s) [%s] <%s> - %s' % (
+                fq_name, request.method_called, file_path, failure.getErrorMessage()))
             failure.printTraceback()
             rstr = self.ERROR_CLASS(
-                        INTERNAL_SERVER_ERROR,
-                        'Unhandled Error',
-                        'Exception in Resource (%s) [%s] <%s> - %s' % (fq_name, request.method_called, file_path, failure.getTraceback()),
-                        log=False
-                   ).render(request)
+                INTERNAL_SERVER_ERROR,
+                'Unhandled Error',
+                'Exception in Resource (%s) [%s] <%s> - %s' % (
+                    fq_name, request.method_called, file_path, failure.getTraceback()),
+                is_logged=False
+            ).render(request)
 
         if request.finished:
             return
-        
+
         request.write(rstr)
         request.finish()
-
 
     def on_connection_closed(self, reason, deferred, request):
         """
@@ -338,16 +337,15 @@ class RestResource(resource.Resource, object):
             log.msg('lost connection after %s secs' % duration)
         elif reason.check(ConnectionAborted):
             log.msg('server aborted connection after %s secs' % duration)
-        
-        deferred.cancel() # cancel queued operations (this will trigger self.on_failure)
-                
-    
+
+        deferred.cancel()  # cancel queued operations (this will trigger self.on_failure)
+
     def _allowed_methods(self):
         """
         Compute allowable http methods to return in an Allowed-Methods header.
         This is to adhere to the HTTP standard.
         """
-        allowed_methods = ['HEAD'] # we always allow head
+        allowed_methods = ['HEAD']  # we always allow head
         fq_name = self.__module__ + '.' + self.__class__.__name__
         name = '?'
         try:
@@ -360,10 +358,8 @@ class RestResource(resource.Resource, object):
         except Exception as e:
             log.err('Resource (%s) error resolving method names (%s)' % (fq_name, e))
         return allowed_methods
-       
-       
-       
-    def _format_response(response, encoding):
+
+    def _format_response(self, request, response, encoding):
         """
         Implemented by derived classes to handle a type defined in
         the class constant ``HANDLE_TYPES``.  Any type defined in
@@ -372,8 +368,8 @@ class RestResource(resource.Resource, object):
         written to the client socket.
         """
         raise NotImplementedError()
-       
-    def _format_post(body, encoding):
+
+    def _format_post(self, request, body, encoding):
         """
         Implemented by derived classes to handle POST or PUT bodies.
         The return value should be a data-structure that your 
@@ -384,4 +380,4 @@ class RestResource(resource.Resource, object):
         :param body: a bytes or string object
         :param encoding: the desired encoding to encode the string as.
         """
-        raise NotImplementedError() 
+        raise NotImplementedError()
